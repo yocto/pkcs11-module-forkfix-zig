@@ -1,6 +1,6 @@
 const std: type = @import("std");
 
-pub fn build(b: *std.Build) void{
+pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -15,7 +15,8 @@ pub fn build(b: *std.Build) void{
         .linkage = .dynamic,
         .root_module = mod,
     });
-    lib.addIncludePath(.{ .cwd_relative="."});
+    lib.addIncludePath(.{ .cwd_relative = "." });
+    lib.linkLibC();
 
     b.installArtifact(lib);
 }
