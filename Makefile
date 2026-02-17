@@ -7,7 +7,7 @@ build:
 
 install:
 	mkdir -p /usr/lib/pkcs11/
-	cp zig-out/bin/pkcs11-forkfix /usr/lib/pkcs11/pkcs11-forkfix.so
+	cp zig-out/lib/libpkcs11-forkfix.so /usr/lib/pkcs11/pkcs11-forkfix.so
 	chmod +x /usr/lib/pkcs11/pkcs11-forkfix.so
 
 clean:
