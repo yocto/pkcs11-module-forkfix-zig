@@ -201,7 +201,13 @@ fn getDynamicLibrary() std.DynLib {
         //if (library != undefined) {
         //library.close();
         //}
-        const submodule: []const u8 = std.mem.span(std.c.getenv("PKCS11_SUBMODULE").?);
+
+        const submodule: []const u8 = value: {
+            if (std.c.getenv("PKCS11_SUBMODULE")) |p| {
+                break :value std.mem.span(p);
+            }
+            break :value "";
+        };
         library = std.DynLib.open(submodule) catch |err| value: {
             log("Error when opening dynamic library: {}\n", .{err});
             break :value undefined;
@@ -212,6 +218,7 @@ fn getDynamicLibrary() std.DynLib {
 }
 
 fn getDynamicLibraryFunction(comptime T: type, name: [:0]const u8) T {
+    log("Dynamic Lib Func {s}\n", .{name});
     var lh = getDynamicLibrary();
     return lh.lookup(T, name) orelse {
         log("Error when getting symbol from dynamic library.\n", .{});
@@ -652,9 +659,9 @@ export fn C_GetInfo(pInfo: c.CK_INFO_PTR) c.CK_RV { // Since v1.0
 }
 
 export fn C_GetInterface(pInterfaceName: c.CK_UTF8CHAR_PTR, pVersion: c.CK_VERSION_PTR, ppInterface: c.CK_INTERFACE_PTR_PTR, flags: c.CK_FLAGS) c.CK_RV { // Since v3.0
-    log("Function called: C_GetInterface(pInterfaceName={s}, pVersion={*}, ppInterface={*}, flags={})\n", .{ pInterfaceName, pVersion, ppInterface, flags });
+    log("Function called: C_GetInterface(pInterfaceName={*}, pVersion={*}, ppInterface={*}, flags={})\n", .{ pInterfaceName, pVersion, ppInterface, flags });
 
-    var matchingInterface: c.CK_INTERFACE_PTR = undefined;
+    var matchingInterface: c.CK_INTERFACE_PTR = null;
 
     for (interfaces) |interfaceItem| {
         var interfaceNameMatches: bool = false;
