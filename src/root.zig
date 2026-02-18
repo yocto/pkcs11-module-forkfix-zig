@@ -197,6 +197,20 @@ fn getPID() i32 {
     return std.os.linux.getpid();
 }
 
+var submodule: [*c]const u8 = null;
+
+fn getSubmodule() [*c]const u8 {
+    if (submodule == null) {
+        submodule = value: {
+            if (std.c.getenv("PKCS11_SUBMODULE")) |p| {
+                break :value std.mem.span(p);
+            }
+            break :value "";
+        };
+    }
+    return submodule;
+}
+
 fn getDynamicLibrary() ?*anyopaque {
     const pid: i32 = getPID();
     if (libraryHandle == null or libraryPID == -1 or libraryPID != pid) {
@@ -211,13 +225,7 @@ fn getDynamicLibrary() ?*anyopaque {
         }
 
         _ = c.dlerror();
-        const submodule: [*c]const u8 = value: {
-            if (std.c.getenv("PKCS11_SUBMODULE")) |p| {
-                break :value std.mem.span(p);
-            }
-            break :value "";
-        };
-        libraryHandle = c.dlmopen(c.LM_ID_NEWLM, submodule, c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
+        libraryHandle = c.dlmopen(c.LM_ID_NEWLM, getSubmodule(), c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
         const err: [*c]u8 = c.dlerror();
         if (err != null) {
             log("Error when opening dynamic library: {s}\n", .{err});
