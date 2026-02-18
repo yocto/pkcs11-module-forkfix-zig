@@ -1,4 +1,6 @@
 const c = @cImport({
+    @cDefine("_GNU_SOURCE", {});
+    @cInclude("dlfcn.h");
     @cInclude("czig.h");
 });
 const std = @import("std");
@@ -187,43 +189,60 @@ var functionList30 = c.CK_FUNCTION_LIST_3_0{
     .C_MessageVerifyFinal = &C_MessageVerifyFinal,
 };
 
-var library: std.DynLib = undefined;
+// var library: std.DynLib = undefined;
+var libraryHandle: ?*anyopaque = null;
 var libraryPID: i32 = 0;
 
 fn getPID() i32 {
     return std.os.linux.getpid();
 }
 
-fn getDynamicLibrary() std.DynLib {
+fn getDynamicLibrary() ?*anyopaque {
     const pid: i32 = getPID();
-    if (libraryPID == -1 or libraryPID != pid) {
+    if (libraryHandle == null or libraryPID == -1 or libraryPID != pid) {
         log("Fork detected. Having process id {} now. Reloading submodule.\n", .{pid});
-        //if (library != undefined) {
-        //library.close();
-        //}
+        if (libraryHandle != null) {
+            _ = c.dlerror();
+            _ = c.dlclose(libraryHandle);
+            const err = c.dlerror();
+            if (err != null) {
+                log("Error when closing dynamic library: {s}\n", .{err});
+            }
+        }
 
-        const submodule: []const u8 = value: {
+        _ = c.dlerror();
+        const submodule: [*c]const u8 = value: {
             if (std.c.getenv("PKCS11_SUBMODULE")) |p| {
                 break :value std.mem.span(p);
             }
             break :value "";
         };
-        library = std.DynLib.open(submodule) catch |err| value: {
-            log("Error when opening dynamic library: {}\n", .{err});
-            break :value undefined;
-        };
+        libraryHandle = c.dlmopen(c.LM_ID_NEWLM, submodule, c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
+        const err: [*c]u8 = c.dlerror();
+        if (err != null) {
+            log("Error when opening dynamic library: {s}\n", .{err});
+        }
+        if (libraryHandle == null) {
+            return null;
+        }
         libraryPID = pid;
     }
-    return library;
+    return libraryHandle;
 }
 
-fn getDynamicLibraryFunction(comptime T: type, name: [:0]const u8) T {
-    log("Dynamic Lib Func {s}\n", .{name});
-    var lh = getDynamicLibrary();
-    return lh.lookup(T, name) orelse {
-        log("Error when getting symbol from dynamic library.\n", .{});
+fn getDynamicLibraryFunction(comptime T: type, functionName: [:0]const u8) T {
+    const lh = getDynamicLibrary();
+    if (lh == null) {
         return null;
-    };
+    }
+    _ = c.dlerror();
+    const symbol = c.dlsym(lh, functionName);
+    const err = c.dlerror();
+    if (err != null) {
+        log("Error when getting symbol from dynamic library: {s}\n", .{err});
+    }
+
+    return @as(T, @ptrCast(symbol));
 }
 
 fn log(comptime fmt: []const u8, args: anytype) void {
