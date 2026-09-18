@@ -5,7 +5,7 @@ const c = @cImport({
 });
 const std = @import("std");
 
-var interfaces: []c.CK_INTERFACE = &.{.{
+const interfaces: []const c.CK_INTERFACE = &.{.{
     .pInterfaceName = @constCast(@as([*c]const u8, @ptrCast("PKCS 11".ptr))),
     .pFunctionList = &functionList30,
     .flags = 0x0,
@@ -703,7 +703,7 @@ export fn C_GetInterface(pInterfaceName: c.CK_UTF8CHAR_PTR, pVersion: c.CK_VERSI
         }
 
         if (interfaceNameMatches and versionMatches and flagMatches) {
-            matchingInterface = &interfaceItem.*;
+            matchingInterface = @constCast(&interfaceItem.*);
             break;
         }
     }
