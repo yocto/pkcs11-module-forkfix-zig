@@ -5,11 +5,6 @@ const c = @cImport({
 });
 const std = @import("std");
 
-const cryptokiVersion: c.CK_VERSION = c.CK_VERSION{
-    .major = 3,
-    .minor = 1,
-};
-
 const interfaces: []const c.CK_INTERFACE = &.{.{
     .pInterfaceName = @constCast(@as([*c]const u8, @ptrCast("PKCS 11".ptr))),
     .pFunctionList = &functionList30,
