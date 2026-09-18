@@ -5,7 +5,7 @@ const c = @cImport({
 });
 const std = @import("std");
 
-const interfaces: []const c.CK_INTERFACE = &.{.{
+var interfaces: []c.CK_INTERFACE = &.{.{
     .pInterfaceName = @constCast(@as([*c]const u8, @ptrCast("PKCS 11".ptr))),
     .pFunctionList = &functionList30,
     .flags = 0x0,
@@ -679,7 +679,7 @@ export fn C_GetInterface(pInterfaceName: c.CK_UTF8CHAR_PTR, pVersion: c.CK_VERSI
 
     var matchingInterface: c.CK_INTERFACE_PTR = null;
 
-    for (interfaces) |interfaceItem| {
+    for (interfaces) |*interfaceItem| {
         var interfaceNameMatches: bool = false;
         var versionMatches: bool = false;
         var flagMatches: bool = false;
@@ -703,7 +703,7 @@ export fn C_GetInterface(pInterfaceName: c.CK_UTF8CHAR_PTR, pVersion: c.CK_VERSI
         }
 
         if (interfaceNameMatches and versionMatches and flagMatches) {
-            matchingInterface = @constCast(&interfaceItem);
+            matchingInterface = &interfaceItem.*;
             break;
         }
     }
