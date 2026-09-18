@@ -17,7 +17,11 @@ const interfaces: []const c.CK_INTERFACE = &.{.{
 }};
 
 var functionList = c.CK_FUNCTION_LIST{
-    .version = cryptokiVersion,
+    // Version of function list
+    .version = c.CK_VERSION{
+        .major = 2,
+        .minor = 40,
+    },
     // Version 2.0 and later
     .C_Initialize = &C_Initialize,
     .C_Finalize = &C_Finalize,
@@ -91,7 +95,11 @@ var functionList = c.CK_FUNCTION_LIST{
 };
 
 var functionList30 = c.CK_FUNCTION_LIST_3_0{
-    .version = cryptokiVersion,
+    // Version of function list
+    .version = c.CK_VERSION{
+        .major = 3,
+        .minor = 0,
+    },
     // Version 2.0 and later
     .C_Initialize = &C_Initialize,
     .C_Finalize = &C_Finalize,
