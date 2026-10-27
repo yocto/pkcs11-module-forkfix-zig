@@ -772,10 +772,8 @@ export fn C_GetInfo(pInfo: c.CK_INFO_PTR) c.CK_RV { // Since v1.0
 }
 
 export fn C_GetInterface(pInterfaceName: c.CK_UTF8CHAR_PTR, pVersion: c.CK_VERSION_PTR, ppInterface: c.CK_INTERFACE_PTR_PTR, flags: c.CK_FLAGS) c.CK_RV { // Since v3.0
-    if (getDebugMode() >= 1) {
-        if (getDebugMode() >= 1) {
+    if (getDebugMode() >= 2) {
             log("Function called: C_GetInterface(pInterfaceName={*}, pVersion={*}, ppInterface={*}, flags={})\n", .{ pInterfaceName, pVersion, ppInterface, flags });
-        }
     }
 
     var matchingInterface: c.CK_INTERFACE_PTR = null;
@@ -817,7 +815,7 @@ export fn C_GetInterface(pInterfaceName: c.CK_UTF8CHAR_PTR, pVersion: c.CK_VERSI
 }
 
 export fn C_GetInterfaceList(pInterfaceList: c.CK_INTERFACE_PTR, pulCount: c.CK_ULONG_PTR) c.CK_RV { // Since v3.0
-    if (getDebugMode() >= 1) {
+    if (getDebugMode() >= 2) {
         log("Function called: C_GetInterfaceList(pInterfaceList={*}, pulCount={*})\n", .{ pInterfaceList, pulCount });
     }
 
