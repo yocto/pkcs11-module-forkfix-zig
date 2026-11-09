@@ -16,4 +16,5 @@ make build
 
 ## Environment variables
 
+- `PKCS11_DEBUG_FORK` - Enable debugging.
 - `PKCS11_SUBMODULE` - An absolute path to the real PKCS#11 module to load.
