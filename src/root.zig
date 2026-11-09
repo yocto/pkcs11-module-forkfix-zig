@@ -233,16 +233,46 @@ fn closeDynamicLibrary() void {
 fn openDynamicLibrary() void {
     const submodule: [*c]const u8 = getSubmodule();
 
-    _ = c.dlerror();
-    libraryHandle = c.dlmopen(c.LM_ID_NEWLM, submodule, c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
-
     if (std.mem.len(submodule) == 0) {
         if (getDebugMode() >= 1) {
             log("Submodule not set.\n", .{});
-            return;
         }
+        return;
     }
 
+    var info: c.Dl_info = undefined;
+    if (c.dladdr(@ptrCast(&c.pthread_key_create), &info) == 0 or info.dli_fname == null) {
+        _ = c.dlerror();
+        libraryHandle = c.dlmopen(c.LM_ID_NEWLM, submodule, c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
+        return;
+    }
+
+    const libc = c.dlmopen(c.LM_ID_NEWLM, info.dli_fname, c.RTLD_NOW | c.RTLD_LOCAL);
+    if (libc == null) {
+        return;
+    }
+
+    var lmid: c.Lmid_t = 0;
+    if (c.dlinfo(libc, c.RTLD_DI_LMID, &lmid) != 0) {
+        return;
+    }
+
+    const key_create_sym = c.dlsym(libc, "pthread_key_create");
+    if (key_create_sym == null) {
+        return;
+    }
+
+    const KeyCreate = *const fn (*c.pthread_key_t, ?*const fn (?*anyopaque) callconv(.c) void) callconv(.c) c_int;
+    const key_create: KeyCreate = @ptrCast(key_create_sym);
+
+    var i: usize = 0;
+    while (i < 512) : (i += 1) {
+        var key: c.pthread_key_t = 0;
+        _ = key_create(&key, null);
+    }
+
+    _ = c.dlerror();
+    libraryHandle = c.dlmopen(lmid, submodule, c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
     const err: [*c]u8 = c.dlerror();
     if (err != null) {
         if (getDebugMode() >= 1) {
