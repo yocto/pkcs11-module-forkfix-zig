@@ -3,6 +3,8 @@ const c = @cImport({
     @cInclude("dlfcn.h");
     @cInclude("czig.h");
     @cInclude("stdlib.h");
+    @cInclude("link.h");
+    @cInclude("pthread.h");
 });
 const std = @import("std");
 
@@ -202,17 +204,25 @@ fn getPID() i32 {
 }
 
 fn getDebugMode() u32 {
-    const debugStr = c.getenv("PKCS11_DEBUG_FORK");
+    const debugStr: [*c]u8 = c.getenv("PKCS11_DEBUG_FORK");
     if (debugStr == null) {
         return 0;
     }
     return std.fmt.parseInt(u32, std.mem.span(debugStr), 10) catch 0;
 }
 
+fn getSubmodule() [*c]const u8 {
+    const subModuleStr: [*c]u8 = c.getenv("PKCS11_SUBMODULE");
+    if (subModuleStr == null) {
+        return "";
+    }
+    return std.mem.span(subModuleStr);
+}
+
 fn closeDynamicLibrary() void {
     _ = c.dlerror();
     _ = c.dlclose(libraryHandle);
-    const err = c.dlerror();
+    const err: [*c]u8 = c.dlerror();
     if (err != null) {
         if (getDebugMode() >= 1) {
             log("Error when closing dynamic library: {s}\n", .{err});
@@ -221,8 +231,18 @@ fn closeDynamicLibrary() void {
 }
 
 fn openDynamicLibrary() void {
+    const submodule: [*c]const u8 = getSubmodule();
+
     _ = c.dlerror();
-    libraryHandle = c.dlmopen(c.LM_ID_NEWLM, "/usr/lib/pkcs11/pkcs11-kmip.so", c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
+    libraryHandle = c.dlmopen(c.LM_ID_NEWLM, submodule, c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
+
+    if (std.mem.len(submodule) == 0) {
+        if (getDebugMode() >= 1) {
+            log("Submodule not set.\n", .{});
+            return;
+        }
+    }
+
     const err: [*c]u8 = c.dlerror();
     if (err != null) {
         if (getDebugMode() >= 1) {
