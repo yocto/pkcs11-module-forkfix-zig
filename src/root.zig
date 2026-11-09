@@ -209,6 +209,28 @@ fn getDebugMode() u32 {
     return std.fmt.parseInt(u32, std.mem.span(debugStr), 10) catch 0;
 }
 
+fn closeDynamicLibrary() void {
+    _ = c.dlerror();
+    _ = c.dlclose(libraryHandle);
+    const err = c.dlerror();
+    if (err != null) {
+        if (getDebugMode() >= 1) {
+            log("Error when closing dynamic library: {s}\n", .{err});
+        }
+    }
+}
+
+fn openDynamicLibrary() void {
+    _ = c.dlerror();
+    libraryHandle = c.dlmopen(c.LM_ID_NEWLM, "/usr/lib/pkcs11/pkcs11-kmip.so", c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
+    const err: [*c]u8 = c.dlerror();
+    if (err != null) {
+        if (getDebugMode() >= 1) {
+            log("Error when opening dynamic library: {s}\n", .{err});
+        }
+    }
+}
+
 fn getDynamicLibrary() ?*anyopaque {
     const pid: i32 = getPID();
     if (libraryHandle == null or libraryPID == -1 or libraryPID != pid) {
@@ -216,24 +238,11 @@ fn getDynamicLibrary() ?*anyopaque {
             log("Fork detected. Having process id {} now. Reloading submodule.\n", .{pid});
         }
         if (libraryHandle != null) {
-            _ = c.dlerror();
-            _ = c.dlclose(libraryHandle);
-            const err = c.dlerror();
-            if (err != null) {
-                if (getDebugMode() >= 1) {
-                    log("Error when closing dynamic library: {s}\n", .{err});
-                }
-            }
+            closeDynamicLibrary();
         }
 
-        _ = c.dlerror();
-        libraryHandle = c.dlmopen(c.LM_ID_NEWLM, "/usr/lib/pkcs11/pkcs11-kmip.so", c.RTLD_NOW | c.RTLD_LOCAL | c.RTLD_DEEPBIND);
-        const err: [*c]u8 = c.dlerror();
-        if (err != null) {
-            if (getDebugMode() >= 1) {
-                log("Error when opening dynamic library: {s}\n", .{err});
-            }
-        }
+        openDynamicLibrary();
+
         if (libraryHandle == null) {
             return null;
         }
@@ -773,7 +782,7 @@ export fn C_GetInfo(pInfo: c.CK_INFO_PTR) c.CK_RV { // Since v1.0
 
 export fn C_GetInterface(pInterfaceName: c.CK_UTF8CHAR_PTR, pVersion: c.CK_VERSION_PTR, ppInterface: c.CK_INTERFACE_PTR_PTR, flags: c.CK_FLAGS) c.CK_RV { // Since v3.0
     if (getDebugMode() >= 2) {
-            log("Function called: C_GetInterface(pInterfaceName={*}, pVersion={*}, ppInterface={*}, flags={})\n", .{ pInterfaceName, pVersion, ppInterface, flags });
+        log("Function called: C_GetInterface(pInterfaceName={*}, pVersion={*}, ppInterface={*}, flags={})\n", .{ pInterfaceName, pVersion, ppInterface, flags });
     }
 
     var matchingInterface: c.CK_INTERFACE_PTR = null;
