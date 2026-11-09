@@ -1,10 +1,10 @@
 const c = @cImport({
     @cDefine("_GNU_SOURCE", {});
-    @cInclude("dlfcn.h");
     @cInclude("czig.h");
-    @cInclude("stdlib.h");
+    @cInclude("dlfcn.h");
     @cInclude("link.h");
     @cInclude("pthread.h");
+    @cInclude("stdlib.h");
 });
 const std = @import("std");
 
